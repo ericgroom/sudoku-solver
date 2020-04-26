@@ -1,8 +1,9 @@
 module Lib where
 
-import Data.Set (Set, fromList, singleton)
+import Data.Set (Set, fromList, singleton, delete, size, elemAt)
 import Util
 import Data.Maybe (isJust, fromJust)
+import Debug.Trace
 
 someFunc :: IO ()
 someFunc = putStrLn "foo"
@@ -48,40 +49,76 @@ maybeCoord board coord = do
         yVal = y coord
         max = (length board) - 1
 
-up :: Coord -> Coord
+type Direction = (Coord -> Coord)
+up :: Direction
 up c =
   c { y = (y c) - 1 }
-down :: Coord -> Coord
+down :: Direction
 down c =
   c { y = (y c) + 1 }
-left :: Coord -> Coord
+left :: Direction
 left c =
   c { x = (x c) - 1 }
-right :: Coord -> Coord
+right :: Direction
 right c =
   c { x = (x c) + 1 }
-upRight :: Coord -> Coord
+upRight :: Direction
 upRight c =
   Coord { x = (x c) + 1, y = (y c) - 1 }
-upLeft :: Coord -> Coord
+upLeft :: Direction
 upLeft c =
   Coord { x = (x c) - 1, y = (y c) - 1 }
-downRight :: Coord -> Coord
+downRight :: Direction
 downRight c =
   Coord { x = (x c) + 1, y = (y c) + 1 }
-downLeft :: Coord -> Coord
+downLeft :: Direction
 downLeft c =
   Coord { x = (x c) - 1, y = (y c) + 1 }
-allDirections :: [Coord -> Coord]
+allDirections :: [Direction]
 allDirections = [up, down, left, right, upRight, upLeft, downRight, downLeft]
 
-traverse' :: (Coord -> Coord) -> Coord -> [Coord]
+traverse' :: (Direction) -> Coord -> [Coord]
 traverse' direction start =
   let next = direction start in
       next : traverse' direction next
 
-getTraversal :: WorkingBoard -> (Coord -> Coord) -> Coord -> [Tile]
+getTraversal :: WorkingBoard -> Direction -> Coord -> [Tile]
 getTraversal board direction start =
   map fromJust $ takeWhile isJust $ map (maybeCoord board) $ traverse' direction start
 
--- $> getTraversal testBoard up Coord{x=0, y=8}
+getSurroundingDirections :: WorkingBoard -> [Direction] -> Coord -> [Tile]
+getSurroundingDirections board directions start =
+  foldl (++) [] $ map go directions
+    where go = \d -> getTraversal board d start
+
+getSubgrid :: WorkingBoard -> Int -> Int -> Coord -> [Tile]
+getSubgrid board width height coord =
+  let 
+    coords = 
+      [ Coord{x=ix, y=iy}
+      | iy <- [startY..startY+height-1]
+      , ix <- [startX..startX+width-1]
+      , ix /= (x coord) || iy /= (y coord)
+      ]
+      in
+      map (getCoord board) coords 
+  where relativeX = (x coord) `mod` width
+        relativeY = (y coord) `mod` height
+        startX = (x coord) - relativeX
+        startY = (y coord) - relativeY
+
+resolve :: WorkingBoard -> Coord -> Tile
+resolve board coord =
+  case (getCoord board coord) of
+    Resolved x -> Resolved x
+    Unresolved s -> foldl reduce (Unresolved s) allPatterns
+  where surroundingRow = getSurroundingDirections board [left, right] coord
+        surroundingCol = getSurroundingDirections board [up, down] coord
+        surroundingGrid = getSubgrid              board 3 3 coord
+        allPatterns = surroundingRow ++ surroundingCol ++ surroundingGrid
+        reduce (Resolved x) _ = Resolved x
+        reduce (Unresolved s) (Resolved x) = let reduced = delete x s in if size reduced <= 1 then Resolved (elemAt 0 reduced) else Unresolved reduced
+        reduce (Unresolved s) (Unresolved _) = Unresolved s
+
+-- 1 2 or 4 expected at 2,0
+-- $> resolve testBoard Coord{x=2, y=0}
