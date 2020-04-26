@@ -29,10 +29,15 @@ data Coord = Coord { x :: Int
                    , y :: Int
                    } deriving (Show)
 
+allCoordPairs :: WorkingBoard -> [[(Tile, Coord)]]
+allCoordPairs board = 
+    [[ (tile, Coord{x=x, y=y}) | (x, tile) <- enumerate row ] | (y, row) <- enumerate board]
+    where enumerate = zip [0..]
+
 allCoords :: WorkingBoard -> [Coord]
 allCoords board =
-    [Coord {x=x, y=y} | (y, row) <- enumerate board, (x, _) <- enumerate row]
-    where enumerate = zip [0..]
+  concat $ map2D (\(_, c) -> c) $ allCoordPairs board
+
 
 getCoord :: WorkingBoard -> Coord -> Tile
 getCoord board coord =
@@ -107,8 +112,8 @@ getSubgrid board width height coord =
         startX = (x coord) - relativeX
         startY = (y coord) - relativeY
 
-resolve :: WorkingBoard -> Coord -> Tile
-resolve board coord =
+resolveTile :: WorkingBoard -> Coord -> Tile
+resolveTile board coord =
   case (getCoord board coord) of
     Resolved x -> Resolved x
     Unresolved s -> foldl reduce (Unresolved s) allPatterns
@@ -121,4 +126,25 @@ resolve board coord =
         reduce (Unresolved s) (Unresolved _) = Unresolved s
 
 -- 1 2 or 4 expected at 2,0
--- $> resolve testBoard Coord{x=2, y=0}
+-- $> resolveTile testBoard Coord{x=2, y=0}
+
+resolve :: WorkingBoard -> WorkingBoard
+resolve board = map2D ((resolveTile board) . onlyCoord) $ allCoordPairs board
+  where onlyCoord (_, coord) = coord
+
+isResolved :: Tile -> Bool
+isResolved (Resolved _) = True
+isResolved (Unresolved _) = False
+
+fromResolved :: Tile -> Int
+fromResolved (Resolved x) = x
+fromResolved (Unresolved _) = error "called fromResolved on an Unresolved"
+
+resolveCompletely :: WorkingBoard -> WorkingBoard
+resolveCompletely board = 
+  let step = resolve board in
+      if all isResolved (concat step) then step else resolveCompletely step 
+
+solve :: WorkingBoard -> [[Int]]
+solve = map2D fromResolved . resolveCompletely
+-- $> solve testBoard
