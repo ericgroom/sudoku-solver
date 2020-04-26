@@ -1,6 +1,7 @@
 module Lib where
 
 import Data.Set (Set, fromList, singleton)
+import Util
 
 someFunc :: IO ()
 someFunc = putStrLn "foo"
@@ -16,9 +17,21 @@ type WorkingBoard = [[Tile]]
 allPossibleValues :: Set Int
 allPossibleValues = fromList [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
-possibleValues :: InputTile -> Tile
-possibleValues Empty = Unresolved allPossibleValues
-possibleValues (NonEmpty x) = Resolved x
-
 parseBoard :: InputBoard -> WorkingBoard
-parseBoard input = [[possibleValues tile | tile <- row] | row <- input]
+parseBoard = map2D possibleValues
+  where possibleValues Empty = Unresolved allPossibleValues
+        possibleValues (NonEmpty x) = Resolved x
+
+
+data Coord = Coord { x :: Int
+                   , y :: Int
+                   } deriving (Show)
+
+allCoords :: WorkingBoard -> [Coord]
+allCoords board =
+    [Coord {x=x, y=y} | (y, row) <- enumerate board, (x, _) <- enumerate row]
+    where enumerate = zip [0..]
+
+getCoord :: WorkingBoard -> Coord -> Tile
+getCoord board coord =
+    board !! (y coord) !! (x coord)
