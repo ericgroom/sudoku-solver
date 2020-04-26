@@ -35,3 +35,14 @@ allCoords board =
 getCoord :: WorkingBoard -> Coord -> Tile
 getCoord board coord =
     board !! (y coord) !! (x coord)
+
+maybeCoord :: WorkingBoard -> Coord -> Maybe Tile
+maybeCoord board coord = do
+  let yLen = length board
+  Just safeY <- if yVal >= 0 && yVal < yLen then return $ Just yVal else return Nothing
+  let xLen = length (board !! safeY)
+  Just safeX <- if xVal >= 0 && xVal < xLen then return $ Just xVal else return Nothing
+  return $ getCoord board Coord{x=safeX, y=safeY}
+  where xVal = x coord
+        yVal = y coord
+        max = (length board) - 1
