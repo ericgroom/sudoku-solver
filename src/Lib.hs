@@ -2,6 +2,7 @@ module Lib where
 
 import Data.Set (Set, fromList, singleton)
 import Util
+import Data.Maybe (isJust, fromJust)
 
 someFunc :: IO ()
 someFunc = putStrLn "foo"
@@ -46,3 +47,41 @@ maybeCoord board coord = do
   where xVal = x coord
         yVal = y coord
         max = (length board) - 1
+
+up :: Coord -> Coord
+up c =
+  c { y = (y c) - 1 }
+down :: Coord -> Coord
+down c =
+  c { y = (y c) + 1 }
+left :: Coord -> Coord
+left c =
+  c { x = (x c) - 1 }
+right :: Coord -> Coord
+right c =
+  c { x = (x c) + 1 }
+upRight :: Coord -> Coord
+upRight c =
+  Coord { x = (x c) + 1, y = (y c) - 1 }
+upLeft :: Coord -> Coord
+upLeft c =
+  Coord { x = (x c) - 1, y = (y c) - 1 }
+downRight :: Coord -> Coord
+downRight c =
+  Coord { x = (x c) + 1, y = (y c) + 1 }
+downLeft :: Coord -> Coord
+downLeft c =
+  Coord { x = (x c) - 1, y = (y c) + 1 }
+allDirections :: [Coord -> Coord]
+allDirections = [up, down, left, right, upRight, upLeft, downRight, downLeft]
+
+traverse' :: (Coord -> Coord) -> Coord -> [Coord]
+traverse' direction start =
+  let next = direction start in
+      next : traverse' direction next
+
+getTraversal :: WorkingBoard -> (Coord -> Coord) -> Coord -> [Tile]
+getTraversal board direction start =
+  map fromJust $ takeWhile isJust $ map (maybeCoord board) $ traverse' direction start
+
+-- $> getTraversal testBoard up Coord{x=0, y=8}
