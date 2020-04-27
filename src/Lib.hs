@@ -10,10 +10,10 @@ someFunc = putStrLn "foo"
 
 
 data InputTile = Empty | NonEmpty Int
-    deriving Show
+    deriving Show 
 type InputBoard = [[InputTile]]
 data Tile = Resolved Int | Unresolved (Set Int)
-    deriving Show
+    deriving (Show, Eq)
 type WorkingBoard = [[Tile]]
 
 allPossibleValues :: Set Int
@@ -143,6 +143,9 @@ fromResolved (Unresolved _) = error "called fromResolved on an Unresolved"
 resolveCompletely :: WorkingBoard -> WorkingBoard
 resolveCompletely board = 
   let step = resolve board in
+      if step == board then
+        error ("no progress" ++ show step)
+        else
       if all isResolved (concat step) then step else resolveCompletely step 
 
 solve :: WorkingBoard -> [[Int]]

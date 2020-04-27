@@ -4,11 +4,13 @@ import Lib
 import Util
 
 main :: IO ()
-main = someFunc
+main = do
+  putStrLn $ show $ solve testBoard
+  putStrLn $ show $ solve hardBoard
 
 testBoard :: WorkingBoard
 testBoard = 
-  process 
+  convert 
   [ [5, 3, 0, 0, 7, 0, 0, 0, 0]
   , [6, 0, 0, 1, 9, 5, 0, 0, 0]
   , [0, 9, 8, 0, 0, 0, 0, 6, 0]
@@ -19,8 +21,26 @@ testBoard =
   , [0, 0, 0, 4, 1, 9, 0, 0, 5]
   , [0, 0, 0, 0, 8, 0, 0, 7, 9]
   ]
-    where process board = parseBoard $ map2D convertTile board
-          convertTile n
-            | n >= 1 && n <= 9 = NonEmpty n
-            | otherwise = Empty
 
+hardBoard :: WorkingBoard
+hardBoard = 
+  convert 
+  [ [0, 0, 0, 0, 0, 0, 6, 8, 0]
+  , [0, 0, 0, 0, 7, 3, 0, 0, 9]
+  , [3, 0, 9, 0, 0, 0, 0, 4, 5]
+  , [4, 9, 0, 0, 0, 0, 0, 0, 0]
+  , [8, 0, 3, 0, 5, 0, 9, 0, 2]
+  , [0, 0, 0, 0, 0, 0, 0, 3, 6]
+  , [9, 6, 0, 0, 0, 0, 3, 0, 8]
+  , [7, 0, 0, 6, 8, 0, 0, 0, 0]
+  , [0, 2, 8, 0, 0, 0, 0, 0, 0]
+  ]
+
+-- $> solve hardBoard
+
+convert :: [[Int]] -> WorkingBoard
+convert board = parseBoard $ map2D convertTile board
+  where
+    convertTile n
+      | n >= 1 && n <= 9 = NonEmpty n
+      | otherwise = Empty
