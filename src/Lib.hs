@@ -125,9 +125,6 @@ resolveTile board coord =
         reduce (Unresolved s) (Resolved x) = let reduced = delete x s in if size reduced <= 1 then Resolved (elemAt 0 reduced) else Unresolved reduced
         reduce (Unresolved s) (Unresolved _) = Unresolved s
 
--- 1 2 or 4 expected at 2,0
--- $> resolveTile testBoard Coord{x=2, y=0}
-
 resolve :: WorkingBoard -> WorkingBoard
 resolve board = map2D ((resolveTile board) . onlyCoord) $ allCoordPairs board
   where onlyCoord (_, coord) = coord
@@ -150,4 +147,3 @@ resolveCompletely board =
 
 solve :: WorkingBoard -> [[Int]]
 solve = map2D fromResolved . resolveCompletely
--- $> solve testBoard

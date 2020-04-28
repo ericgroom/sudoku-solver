@@ -36,8 +36,6 @@ hardBoard =
   , [0, 2, 8, 0, 0, 0, 0, 0, 0]
   ]
 
--- $> solve hardBoard
-
 convert :: [[Int]] -> WorkingBoard
 convert board = parseBoard $ map2D convertTile board
   where
