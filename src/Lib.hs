@@ -1,13 +1,10 @@
 module Lib where
 
-import Data.Set (Set, fromList, singleton, delete, size, elemAt)
 import Util
+import Coord
+import Data.Set (Set, fromList, singleton, delete, size, elemAt, difference)
 import Data.Maybe (isJust, fromJust)
 import Debug.Trace
-
-someFunc :: IO ()
-someFunc = putStrLn "foo"
-
 
 data InputTile = Empty | NonEmpty Int
     deriving Show 
@@ -24,11 +21,6 @@ parseBoard = map2D possibleValues
   where possibleValues Empty = Unresolved allPossibleValues
         possibleValues (NonEmpty x) = Resolved x
 
-
-data Coord = Coord { x :: Int
-                   , y :: Int
-                   } deriving (Show)
-
 allCoordPairs :: WorkingBoard -> [[(Tile, Coord)]]
 allCoordPairs board = 
     [[ (tile, Coord{x=x, y=y}) | (x, tile) <- enumerate row ] | (y, row) <- enumerate board]
@@ -37,7 +29,6 @@ allCoordPairs board =
 allCoords :: WorkingBoard -> [Coord]
 allCoords board =
   concat $ map2D (\(_, c) -> c) $ allCoordPairs board
-
 
 getCoord :: WorkingBoard -> Coord -> Tile
 getCoord board coord =
@@ -53,39 +44,6 @@ maybeCoord board coord = do
   where xVal = x coord
         yVal = y coord
         max = (length board) - 1
-
-type Direction = (Coord -> Coord)
-up :: Direction
-up c =
-  c { y = (y c) - 1 }
-down :: Direction
-down c =
-  c { y = (y c) + 1 }
-left :: Direction
-left c =
-  c { x = (x c) - 1 }
-right :: Direction
-right c =
-  c { x = (x c) + 1 }
-upRight :: Direction
-upRight c =
-  Coord { x = (x c) + 1, y = (y c) - 1 }
-upLeft :: Direction
-upLeft c =
-  Coord { x = (x c) - 1, y = (y c) - 1 }
-downRight :: Direction
-downRight c =
-  Coord { x = (x c) + 1, y = (y c) + 1 }
-downLeft :: Direction
-downLeft c =
-  Coord { x = (x c) - 1, y = (y c) + 1 }
-allDirections :: [Direction]
-allDirections = [up, down, left, right, upRight, upLeft, downRight, downLeft]
-
-traverse' :: (Direction) -> Coord -> [Coord]
-traverse' direction start =
-  let next = direction start in
-      next : traverse' direction next
 
 getTraversal :: WorkingBoard -> Direction -> Coord -> [Tile]
 getTraversal board direction start =
@@ -116,14 +74,23 @@ resolveTile :: WorkingBoard -> Coord -> Tile
 resolveTile board coord =
   case (getCoord board coord) of
     Resolved x -> Resolved x
-    Unresolved s -> foldl reduce (Unresolved s) allPatterns
+    Unresolved s -> fromSet $ rules s 
   where surroundingRow = getSurroundingDirections board [left, right] coord
         surroundingCol = getSurroundingDirections board [up, down] coord
         surroundingGrid = getSubgrid              board 3 3 coord
-        allPatterns = surroundingRow ++ surroundingCol ++ surroundingGrid
-        reduce (Resolved x) _ = Resolved x
-        reduce (Unresolved s) (Resolved x) = let reduced = delete x s in if size reduced <= 1 then Resolved (elemAt 0 reduced) else Unresolved reduced
-        reduce (Unresolved s) (Unresolved _) = Unresolved s
+        rules = noDuplicatesRule surroundingRow . noDuplicatesRule surroundingCol . noDuplicatesRule surroundingGrid
+
+noDuplicatesRule :: [Tile] -> Set Int -> Set Int
+noDuplicatesRule surroundings possibilities =
+  possibilities `difference` resolvedSurroundings
+    where resolvedSurroundings = fromList $ map fromResolved $ filter isResolved surroundings
+
+fromSet :: Set Int -> Tile
+fromSet s
+    | len == 1  = Resolved (elemAt 0 s)
+    | len > 1   = Unresolved s
+    | otherwise = error "impossible"
+  where len = size s
 
 resolve :: WorkingBoard -> WorkingBoard
 resolve board = map2D ((resolveTile board) . onlyCoord) $ allCoordPairs board
