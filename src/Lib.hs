@@ -74,11 +74,11 @@ resolveTile :: WorkingBoard -> Coord -> Tile
 resolveTile board coord =
   case (getCoord board coord) of
     Resolved x -> Resolved x
-    Unresolved s -> fromSet $ rules s 
+    Unresolved s -> fromSet $ refine s 
   where surroundingRow = getSurroundingDirections board [left, right] coord
         surroundingCol = getSurroundingDirections board [up, down] coord
         surroundingGrid = getSubgrid              board 3 3 coord
-        rules = noDuplicatesRule surroundingRow . noDuplicatesRule surroundingCol . noDuplicatesRule surroundingGrid
+        refine = foldl (.) id [noDuplicatesRule surroundingRow, noDuplicatesRule surroundingCol, noDuplicatesRule surroundingGrid]
 
 noDuplicatesRule :: [Tile] -> Set Int -> Set Int
 noDuplicatesRule surroundings possibilities =
