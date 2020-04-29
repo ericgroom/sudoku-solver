@@ -2,7 +2,7 @@ module Lib where
 
 import Util
 import Coord
-import Data.Set (Set, fromList, singleton, delete, size, elemAt, difference)
+import Data.Set (Set, fromList, singleton, delete, size, elemAt, difference, union, empty, elems)
 import Data.Maybe (isJust, fromJust)
 import Debug.Trace
 
@@ -85,12 +85,28 @@ noDuplicatesRule surroundings possibilities =
   possibilities `difference` resolvedSurroundings
     where resolvedSurroundings = fromList $ map fromResolved $ filter isResolved surroundings
 
+mustIncludeRule :: [Tile] -> Set Int -> Set Int
+mustIncludeRule surroundings possibilities =
+  -- if a number in this position is unavailable in all other positions, then it must be in this position
+  let unique = possibilities `difference` surroundingPossibilities in
+      if size unique == 1 then
+        unique
+      else
+        possibilities
+    where surroundingPossibilities = foldl union empty $ map toSet surroundings
+
+testSet = (fromList [3, 4]) :: Set Int
+
 fromSet :: Set Int -> Tile
 fromSet s
     | len == 1  = Resolved (elemAt 0 s)
     | len > 1   = Unresolved s
-    | otherwise = error "impossible"
+    | otherwise = error $ "impossible: " ++ show s
   where len = size s
+
+toSet :: Tile -> Set Int
+toSet (Resolved x) = singleton x
+toSet (Unresolved s) = s
 
 resolve :: WorkingBoard -> WorkingBoard
 resolve board = map2D ((resolveTile board) . onlyCoord) $ allCoordPairs board
@@ -108,9 +124,12 @@ resolveCompletely :: WorkingBoard -> WorkingBoard
 resolveCompletely board = 
   let step = resolve board in
       if step == board then
-        error ("no progress" ++ show step)
+        error ("no progress: " ++ format step)
         else
       if all isResolved (concat step) then step else resolveCompletely step 
+    where format board = concat $ map ("\n" ++) [concat (map ts row)|row <- board]
+          ts (Resolved x) = show x
+          ts (Unresolved s) = "[" ++ concat [show i ++ "," | i <- elems s] ++ "]"
 
 solve :: WorkingBoard -> [[Int]]
 solve = map2D fromResolved . resolveCompletely
